@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; worker-src 'self' blob:"
+    />
+    <title>smackums</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <button id="nav-back" title="Back">&larr;</button>
+        <button id="nav-forward" title="Forward">&rarr;</button>
+        <button id="nav-reload" title="Reload">&#8635;</button>
+        <input id="address-bar" type="text" value="https://www.youtube.com" spellcheck="false" />
+        <span id="key-display">--</span>
+        <button id="midi-learn-btn">MIDI Learn</button>
+        <button id="capture-btn">&#9679; Capture</button>
+      </header>
+
+      <div id="browser-pane">
+        <webview id="ytview" src="https://www.youtube.com" allowpopups></webview>
+      </div>
+
+      <div id="waveform-pane">
+        <canvas id="waveform-canvas"></canvas>
+      </div>
+
+      <div id="pad-grid"><!-- populated in M2 --></div>
+
+      <footer id="statusbar">
+        <span id="capture-status">idle</span>
+        <span id="midi-status">MIDI: --</span>
+      </footer>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
