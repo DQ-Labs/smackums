@@ -123,7 +123,7 @@ void (async () => {
 midiLearnBtn.addEventListener('click', () => {
   learnModeActive = !learnModeActive
   midiLearnBtn.classList.toggle('active', learnModeActive)
-  midiLearnBtn.textContent = learnModeActive ? 'Learning… click a pad' : 'MIDI Learn'
+  midiLearnBtn.textContent = learnModeActive ? 'Learning… click a pad below, then hit its MIDI control' : 'MIDI Learn'
   if (!learnModeActive) {
     midi.cancelLearn()
     clearArmedPad()
@@ -159,6 +159,7 @@ function renderLoop(): void {
 captureBtn.addEventListener('click', async () => {
   if (!capturing) {
     try {
+      captureStatus.classList.remove('error')
       pendingVideoStartTime = await readVideoTime()
       await capture.start()
       capturing = true
@@ -167,7 +168,9 @@ captureBtn.addEventListener('click', async () => {
       captureStatus.textContent = 'capturing…'
       renderLoop()
     } catch (err) {
-      captureStatus.textContent = `error: ${(err as Error).message}`
+      console.error('capture failed to start', err)
+      captureStatus.classList.add('error')
+      captureStatus.textContent = `⚠ capture failed: ${(err as Error).message}`
     }
   } else {
     cancelAnimationFrame(rafId)

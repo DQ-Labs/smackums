@@ -21,6 +21,11 @@ export default defineConfig({
     root: 'src/renderer',
     build: {
       outDir: 'out/renderer',
+      // The recorder AudioWorklet script is small enough that Vite would
+      // otherwise inline it as a data: URI — which our CSP (and the
+      // Worklet module-script fetch) then refuses to load. Force every
+      // ?url-imported asset to stay a real file instead.
+      assetsInlineLimit: 0,
       rollupOptions: {
         input: { index: './src/renderer/index.html' }
       }

@@ -176,3 +176,9 @@ body {
   color: var(--text-dim);
   font-size: 11px;
 }
+
+#capture-status.error {
+  color: #ff6b6b;
+  font-weight: 600;
+  font-size: 13px;
+}

@@ -42,6 +42,11 @@ function createWindow(): void {
     })
   })
 
+  // This is a single-purpose personal toy (embeds only youtube.com), so
+  // blanket-granting permission requests (midi, media, etc.) is fine — there's
+  // no untrusted third-party content in play.
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(true))
+
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {

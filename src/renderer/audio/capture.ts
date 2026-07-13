@@ -1,8 +1,24 @@
-import workletUrl from './recorder-worklet?url'
+import workletUrl from './recorder-worklet.js?url'
 
 export interface CaptureResult {
   buffer: Float32Array
   sampleRate: number
+}
+
+// The packaged app is loaded over file://, and Chromium's module-script
+// fetch algorithm (used internally by audioWorklet.addModule) enforces a
+// JavaScript MIME type that file:// reads don't carry — addModule(workletUrl)
+// silently rejects there even though it works fine in dev over http://
+// localhost. Re-wrapping the fetched source in a Blob with an explicit MIME
+// type sidesteps that check in both environments.
+async function loadRecorderWorklet(context: AudioContext): Promise<void> {
+  const source = await (await fetch(workletUrl)).text()
+  const blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
+  try {
+    await context.audioWorklet.addModule(blobUrl)
+  } finally {
+    URL.revokeObjectURL(blobUrl)
+  }
 }
 
 // Captures loopback audio of the app's own window (see the main process's
@@ -33,7 +49,7 @@ export class CaptureSession {
 
     this.audioContext = new AudioContext()
     this.lastSampleRate = this.audioContext.sampleRate
-    await this.audioContext.audioWorklet.addModule(workletUrl)
+    await loadRecorderWorklet(this.audioContext)
 
     this.sourceNode = this.audioContext.createMediaStreamSource(this.stream)
     this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-processor')
