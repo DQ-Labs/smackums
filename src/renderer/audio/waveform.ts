@@ -22,6 +22,32 @@ export class WaveformView {
     canvas.addEventListener('mousedown', this.handleMouseDown)
     window.addEventListener('mousemove', this.handleMouseMove)
     window.addEventListener('mouseup', this.handleMouseUp)
+    canvas.addEventListener('mousemove', this.updateHoverCursor)
+    canvas.addEventListener('mouseleave', () => {
+      if (!this.dragging) this.canvas.style.cursor = 'default'
+    })
+  }
+
+  private zoneAt(clientX: number): DragMode {
+    if (!this.region) return null
+    const s = this.sampleAtClientX(clientX)
+    const tolerance = this.edgeTolerance()
+    if (Math.abs(s - this.region.startSample) < tolerance) return 'start'
+    if (Math.abs(s - this.region.endSample) < tolerance) return 'end'
+    if (s > this.region.startSample && s < this.region.endSample) return 'move'
+    return null
+  }
+
+  private edgeTolerance(): number {
+    const samplesPerPixel = this.buffer.length / Math.max(1, this.canvas.width)
+    const dpr = window.devicePixelRatio || 1
+    return samplesPerPixel * 10 * dpr
+  }
+
+  private updateHoverCursor = (event: MouseEvent): void => {
+    if (this.dragging) return
+    const zone = this.zoneAt(event.clientX)
+    this.canvas.style.cursor = zone === 'start' || zone === 'end' ? 'ew-resize' : zone === 'move' ? 'grab' : 'default'
   }
 
   private resize(): void {
@@ -43,19 +69,13 @@ export class WaveformView {
 
   private handleMouseDown = (event: MouseEvent): void => {
     if (!this.region) return
-    const s = this.sampleAtClientX(event.clientX)
-    const samplesPerPixel = this.buffer.length / Math.max(1, this.canvas.width)
-    const dpr = window.devicePixelRatio || 1
-    const tolerance = samplesPerPixel * 8 * dpr
-
-    if (Math.abs(s - this.region.startSample) < tolerance) {
-      this.dragging = 'start'
-    } else if (Math.abs(s - this.region.endSample) < tolerance) {
-      this.dragging = 'end'
-    } else if (s > this.region.startSample && s < this.region.endSample) {
-      this.dragging = 'move'
+    const zone = this.zoneAt(event.clientX)
+    this.dragging = zone
+    if (zone === 'move') {
+      const s = this.sampleAtClientX(event.clientX)
       this.dragOffset = s - this.region.startSample
     }
+    if (zone) this.canvas.style.cursor = zone === 'move' ? 'grabbing' : 'ew-resize'
   }
 
   private handleMouseMove = (event: MouseEvent): void => {
@@ -80,6 +100,7 @@ export class WaveformView {
       this.onRegionChange?.(this.region)
     }
     this.dragging = null
+    this.canvas.style.cursor = 'default'
   }
 
   /** Set a new capture buffer and (re)initialize a default chop region. */
@@ -132,14 +153,31 @@ export class WaveformView {
     }
 
     if (this.region) {
+      const dpr = window.devicePixelRatio || 1
       const toX = (s: number): number => (s / buffer.length) * width
       const x1 = toX(this.region.startSample)
       const x2 = toX(this.region.endSample)
+
       ctx.fillStyle = 'rgba(79, 209, 197, 0.15)'
       ctx.fillRect(x1, 0, x2 - x1, height)
+
+      // Boundary lines plus a fat grip tab at the top of each, so the two
+      // resize handles read as distinct draggable targets from the "move
+      // the whole selection" body in between.
       ctx.fillStyle = '#e6e6e9'
       ctx.fillRect(x1 - 1, 0, 2, height)
       ctx.fillRect(x2 - 1, 0, 2, height)
+
+      const gripW = 14 * dpr
+      const gripH = 20 * dpr
+      ctx.fillStyle = '#4fd1c5'
+      ctx.fillRect(x1 - gripW / 2, 0, gripW, gripH)
+      ctx.fillRect(x2 - gripW / 2, 0, gripW, gripH)
+      ctx.fillStyle = '#0d0d10'
+      ctx.font = `${11 * dpr}px sans-serif`
+      ctx.textAlign = 'center'
+      ctx.fillText('◂▸', x1, gripH * 0.7)
+      ctx.fillText('◂▸', x2, gripH * 0.7)
     }
   }
 }
