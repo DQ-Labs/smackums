@@ -1,6 +1,6 @@
 {
   "name": "smackums",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A fun desktop toy: capture YouTube tab audio live, auto-detect key, chop into an 8-pad MIDI sampler.",
   "main": "./out/main/index.js",
   "author": "Jacob Felton",
@@ -32,7 +32,9 @@
       "out/**/*"
     ],
     "win": {
-      "target": ["portable"],
+      "target": [
+        "portable"
+      ],
       "signAndEditExecutable": false
     }
   }
