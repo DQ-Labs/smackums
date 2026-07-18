@@ -104,14 +104,31 @@ function createWindow(): void {
     }
   })
 
-  // Auto-grant the renderer's getDisplayMedia() request against this app's
-  // own window, so we never show the OS source picker — we always want
-  // loopback audio of our own window's webview.
+  // Auto-grant the renderer's getDisplayMedia() request with full-desktop
+  // loopback audio, so we never show the OS source picker. Deliberately
+  // screen-scoped rather than window-scoped: per-window audio loopback needs
+  // the newer Windows Graphics Capture path (Win10 20348+/Win11, DWM
+  // composition, compatible GPU driver) and fails outright with a bare
+  // "Error starting capture" on machines that don't have it — whereas
+  // full-desktop loopback is the older, far more broadly supported capture
+  // path. capture.ts discards the video track immediately, so the video
+  // source only needs to be valid, not scoped to this window — and the
+  // audio was already effectively whole-system regardless (see capture.ts).
   session.defaultSession.setDisplayMediaRequestHandler((_request, callback) => {
-    desktopCapturer.getSources({ types: ['window'] }).then((sources) => {
-      const ownWindow = sources.find((s) => s.name === win.getTitle()) ?? sources[0]
-      callback({ video: ownWindow, audio: 'loopback' })
-    })
+    desktopCapturer
+      .getSources({ types: ['screen'] })
+      .then((sources) => {
+        if (sources.length === 0) {
+          console.error('desktopCapturer returned no screen sources')
+          callback({})
+          return
+        }
+        callback({ video: sources[0], audio: 'loopback' })
+      })
+      .catch((err) => {
+        console.error('desktopCapturer.getSources failed', err)
+        callback({})
+      })
   })
 
   // This is a single-purpose personal toy (embeds only youtube.com), so
