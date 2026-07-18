@@ -1,7 +1,7 @@
 import workletUrl from './recorder-worklet.js?url'
 
 export interface CaptureResult {
-  buffer: Float32Array
+  buffer: Float32Array<ArrayBuffer>
   sampleRate: number
 }
 
@@ -62,7 +62,7 @@ export class CaptureSession {
   }
 
   /** Concatenated snapshot of everything captured so far, without stopping. */
-  getSnapshot(): Float32Array {
+  getSnapshot(): Float32Array<ArrayBuffer> {
     const buffer = new Float32Array(this.totalLength)
     let offset = 0
     for (const chunk of this.chunks) {

@@ -19,11 +19,12 @@ export class Pad {
     return this.buffer ? `${this.buffer.duration.toFixed(2)}s` : '--'
   }
 
-  trigger(context: AudioContext): void {
+  /** Play now, or at an absolute AudioContext time (for sequencer scheduling). */
+  trigger(context: AudioContext, when = 0): void {
     if (!this.buffer) return
     const source = context.createBufferSource()
     source.buffer = this.buffer
     source.connect(context.destination)
-    source.start()
+    source.start(when)
   }
 }

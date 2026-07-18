@@ -1,6 +1,6 @@
 import { app, BrowserWindow, desktopCapturer, session, ipcMain } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'fs'
 
 function midiMappingsPath(): string {
   return join(app.getPath('userData'), 'midiMappings.json')
@@ -16,6 +16,78 @@ ipcMain.handle('midi:load', () => {
   const path = midiMappingsPath()
   if (!existsSync(path)) return {}
   return JSON.parse(readFileSync(path, 'utf-8'))
+})
+
+// Session persistence: pad PCM and the last capture are raw little-endian
+// float32 files next to a JSON manifest, so nothing audio-sized ever passes
+// through JSON. The whole dir is replaced on save — no stale pad files.
+function sessionDir(): string {
+  return join(app.getPath('userData'), 'session')
+}
+
+interface SessionPadMeta {
+  sampleRate: number
+  region: { startSec: number; endSec: number } | null
+  videoSeekTime: number | null
+}
+
+interface SessionMeta {
+  sampleRate: number
+  captureStartVideoTime: number
+  hasCapture: boolean
+  pads: (SessionPadMeta | null)[]
+  seq?: {
+    bpm: number
+    swing: number
+    bars: 1 | 2 | 4
+    pattern: boolean[][]
+  }
+}
+
+interface SessionPayload {
+  meta: SessionMeta
+  capture: Float32Array | null
+  padPcm: (Float32Array | null)[]
+}
+
+function writeF32(path: string, data: Float32Array): void {
+  writeFileSync(path, Buffer.from(data.buffer, data.byteOffset, data.byteLength))
+}
+
+function readF32(path: string): Float32Array {
+  const buf = readFileSync(path)
+  // slice() copies — a view straight onto the Buffer pool can be misaligned.
+  return new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength))
+}
+
+ipcMain.handle('session:save', (_event, payload: SessionPayload) => {
+  const dir = sessionDir()
+  rmSync(dir, { recursive: true, force: true })
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'session.json'), JSON.stringify(payload.meta, null, 2))
+  if (payload.capture) writeF32(join(dir, 'capture.f32'), payload.capture)
+  payload.padPcm.forEach((pcm, i) => {
+    if (pcm) writeF32(join(dir, `pad-${i}.f32`), pcm)
+  })
+})
+
+ipcMain.handle('session:load', (): SessionPayload | null => {
+  const dir = sessionDir()
+  const metaPath = join(dir, 'session.json')
+  if (!existsSync(metaPath)) return null
+  try {
+    const meta = JSON.parse(readFileSync(metaPath, 'utf-8')) as SessionMeta
+    const capturePath = join(dir, 'capture.f32')
+    const capture = meta.hasCapture && existsSync(capturePath) ? readF32(capturePath) : null
+    const padPcm = meta.pads.map((pad, i) => {
+      const path = join(dir, `pad-${i}.f32`)
+      return pad && existsSync(path) ? readF32(path) : null
+    })
+    return { meta, capture, padPcm }
+  } catch (err) {
+    console.error('session load failed, starting fresh', err)
+    return null
+  }
 })
 
 function createWindow(): void {

@@ -17,6 +17,7 @@
         <button id="nav-reload" title="Reload">&#8635;</button>
         <input id="address-bar" type="text" value="https://www.youtube.com" spellcheck="false" />
         <span id="key-display">--</span>
+        <button id="seq-btn" title="Toggle step sequencer">SEQ</button>
         <button id="midi-learn-btn">MIDI Learn</button>
         <button id="capture-btn">&#9679; Capture</button>
       </header>
@@ -31,6 +32,8 @@
           title="Drag the ◂▸ tabs at either edge to trim the start/end. Drag inside the highlighted middle to move the whole selection."
         ></canvas>
       </div>
+
+      <div id="seq-pane" class="hidden"><!-- transport + step grid, built by SeqGridView --></div>
 
       <div id="pad-grid"><!-- populated in M2 --></div>
 

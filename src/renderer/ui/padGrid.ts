@@ -1,6 +1,10 @@
 import { Pad } from '../audio/dsp/padEngine'
 
-const PAD_COLORS = ['#c0392b', '#c9962b', '#b7b52b', '#4a9c4a', '#178a7a', '#2f6f9c', '#5b4a9c', '#9c3f7c']
+export const PAD_COLORS = ['#c0392b', '#c9962b', '#b7b52b', '#4a9c4a', '#178a7a', '#2f6f9c', '#5b4a9c', '#9c3f7c']
+
+// Two keyboard rows mirroring the 4x2 pad grid, so the physical key layout
+// matches what's on screen (Q above A, like the pads they trigger).
+export const PAD_KEYS = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F']
 
 export class PadGridView {
   readonly pads: Pad[] = Array.from({ length: 8 }, () => new Pad())
@@ -39,6 +43,10 @@ export class PadGridView {
       el.style.setProperty('--pad-color', PAD_COLORS[i])
       el.title = 'Click: play (or learn MIDI, in learn mode) · Shift+Click: assign current selection'
 
+      const key = document.createElement('span')
+      key.className = 'pad-key'
+      key.textContent = PAD_KEYS[i]
+
       const num = document.createElement('span')
       num.className = 'pad-num'
       num.textContent = String(i + 1)
@@ -47,7 +55,7 @@ export class PadGridView {
       dur.className = 'pad-dur'
       dur.textContent = pad.durationLabel()
 
-      el.append(num, dur)
+      el.append(key, num, dur)
       el.addEventListener('click', (event) => this.onPadClick(i, event.shiftKey))
 
       this.elements.push(el)
